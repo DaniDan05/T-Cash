@@ -2,10 +2,9 @@ package source.ui;
 
 import java.util.Scanner;
 
-import org.mindrot.jbcrypt.BCrypt;
-
 import source.service.AccountOperations;
-import source.util.Database;
+
+import source.util.Validator;
 
 final class Register {
     final private Scanner input;
@@ -20,15 +19,15 @@ final class Register {
         System.out.println("\nREGISTER\n\nUsername (Min of 4 char and max of 50 char)");
         String inputUserName = input.nextLine();
 
-        if (inputUserName.length() < 4 || 50 < inputUserName.length()){
+        if (Validator.isInvalidName(inputUserName)) {
             System.out.println("Length must be 4 - 50");
-            return;
+            return; 
         }
 
         System.out.println("Cellphone Number");
         String inputCpNumber = input.nextLine();
 
-        if (inputCpNumber.length() != 11){
+        if (Validator.isInvalidCpNumber(inputCpNumber)) {
             System.out.println("Length must be 11");
             return;
         }
@@ -36,13 +35,13 @@ final class Register {
         System.out.println("MPIN");
         String inputMpin = input.nextLine().trim();
 
-        if ( inputMpin.length() !=6 ) {
+        if (Validator.isInvalidMpin(inputMpin)) {
             System.out.println("Length must be 6.");
             return;
         }
 
         System.out.println("Confirm MPIN");
-        if ( ! inputMpin.equals(input.nextLine()) ) {
+        if ( !inputMpin.equals(input.nextLine()) ) {
             System.out.println("Password Credentials is not the same.");
             return;
         }
@@ -55,7 +54,7 @@ final class Register {
         if (isBusinessAccount) {
             System.out.println("Input Business name");
             inputBusinessName = input.nextLine();
-            if( inputBusinessName.length() < 4 || 50 < inputBusinessName.length() ) {
+            if (Validator.isInvalidBusinessName(inputBusinessName)) {
                 System.out.println("Limited 4 - 50 range of characters.");
                 return;
             }

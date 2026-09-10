@@ -23,7 +23,11 @@ public class Main {
 
         Transfer transfer = new Transfer(accountData, transactionHistoryData);
 
-        TransactionOperations transactionOperations = new TransactionOperations(transfer);
+        TransactionOperations transactionOperations = new TransactionOperations(
+            accountData,
+            transactionHistoryData,
+            transfer
+        );
 
         Scanner input = new Scanner(System.in);
         new MainMenu(input, accountOperations, transactionOperations, transactionHistoryOperations).execute();

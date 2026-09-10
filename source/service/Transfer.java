@@ -2,24 +2,24 @@ package source.service;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import source.data.AccountData;
 import source.data.TransactionHistoryData;
+
 import source.model.Account;
-import source.util.Database;
 
 final public class Transfer {
-    final private AccountData accountDB;
-    final private TransactionHistoryData recordsDB;
+    final private AccountData accountData;
+    final private TransactionHistoryData transactionHistoryData;
 
-    public Transfer (AccountData accountDB, TransactionHistoryData recordsDB) {
-        this.accountDB = accountDB;
-        this.recordsDB = recordsDB;
+    public Transfer (AccountData accountData, TransactionHistoryData transactionHistoryData) {
+        this.accountData = accountData;
+        this.transactionHistoryData = transactionHistoryData;
     }
     
     public BigDecimal main (
+        Connection extension,
         Account senderAccount,
         Account receiverAccount,
         BigDecimal amount,
@@ -27,32 +27,37 @@ final public class Transfer {
         Account.TransactionType transactionType 
     ) throws SQLException {
         BigDecimal total = BigDecimal.ZERO;
-        Connection link = Database.getConnection();
         try {
-            // Begin the transaction so all balance changes succeed or fail together.
-            link.setAutoCommit(false);
+            // START
+            extension.setAutoCommit(false);
 
-            // Deduct the transfer amount and fee from the sender.
+            // sender Deduction
             BigDecimal currentAmount = senderAccount.getAmount().subtract(amount.add(fee));
             if (currentAmount.compareTo(BigDecimal.ZERO) < 0)
-                throw new SQLException("BAWAL UTANG!!!");
+                throw new IllegalArgumentException("Insufficient balance.");
 
-            updateData(link, currentAmount, senderAccount.getCpNumber());
+            // Update sender data
+            accountData.updateAccountData(extension, currentAmount, senderAccount.getCpNumber());
+ 
 
-            // Verify that the receiver will remain within the wallet limit.
-            checkWalletLimit(link, receiverAccount.getCpNumber(), amount);
+            BigDecimal walletLimit = accountData.findWalletLimit(extension, receiverAccount.getCpNumber());
+            if (walletLimit == null) 
+                throw new IllegalArgumentException("Receiver account does not exist.");
+            
+            // Receiver additional
+            BigDecimal newReceiverBalance = receiverAccount.getAmount().add(amount);
+            if (newReceiverBalance.compareTo(walletLimit) > 0) 
+                throw new IllegalArgumentException("Over wallet limitation.");
 
-            // Add the transfer amount to the receiver's balance.
-            currentAmount = amount.add(receiverAccount.getAmount());
-
-            updateData(link, amount.add(receiverAccount.getAmount()), receiverAccount.getCpNumber());
+            // Update receiver data
+            accountData.updateAccountData(extension, amount.add(receiverAccount.getAmount()), receiverAccount.getCpNumber());
                 
-
+            // Update local value
             total = amount.add(fee); // Return the total amount deducted from the sender.
 
-
-            recordTransaction(
-                link,
+            // i-record sa transactions table
+            transactionHistoryData.recordTransaction(
+                extension,
                 senderAccount.getAccountID(),
                 receiverAccount.getAccountID(), 
                 amount,
@@ -60,15 +65,15 @@ final public class Transfer {
                 transactionType
             );
 
-            link.commit();  // Commit only after both balance updates and the history record succeed.
+            extension.commit();  // END
 
-        }         
-        catch (SQLException e) {
-            // e.printStackTrace();
-            link.rollback();
-            throw e;
+        }catch (SQLException e) {
+            extension.rollback();
+            throw new RuntimeException("Database error while transfering the money ", e);
+        } catch (IllegalArgumentException e) {
+            extension.rollback();
+            throw e;  //
         }
-        finally{link.close(); }        
         return total;
     }
 }

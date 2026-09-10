@@ -6,12 +6,12 @@ final public class Basic extends Account{
 
     
     public Basic(
-        String username,
+        String name,
         String cpNumber,
         AccountType type
     ) {
         super(
-            username,
+            name,
             cpNumber,
             type
         );
@@ -19,14 +19,14 @@ final public class Basic extends Account{
 
     public Basic (
         long accountID,
-        String username,
+        String name,
         String cpNumber,
         BigDecimal amount,
         String createdAt
     ) {
         super(
             accountID,
-            username,
+            name,
             cpNumber,
             amount,
             AccountType.BASIC,

@@ -6,8 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import javax.xml.crypto.Data;
-
 import source.data.AccountData;
 
 import source.model.Account;
@@ -16,6 +14,8 @@ import source.model.Business;
 import source.model.Account.AccountType;
 
 import source.util.Database;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 final public class AccountOperations {
     final private AccountData accountData;
@@ -26,26 +26,27 @@ final public class AccountOperations {
  
     //check
     public void generateAccount(
-        String accountName,
-        String cpNumber,
-        String mpin,
-        String businessName,
+        String inputAccountName,
+        String inputCpNumber,
+        String inputMpin,
+        String inputBusinessName,
         boolean isBusinessAccount
     ) {
         try (Connection link = Database.getConnection()) {
 
-            boolean isCpNumberExist = accountData.readAccountData(link, cpNumber) != null;
+            boolean isAccountNameExist = accountData.findAccountName(link, inputAccountName) != null,
+                    isCpNumberExist = accountData.readAccountData(link, inputCpNumber) != null;
 
-            if(isCpNumberExist)
-                throw new  IllegalArgumentException("Number is already existed.");
+            if(isAccountNameExist || isCpNumberExist)
+                throw new IllegalArgumentException("Name or number is already existed.");
 
             boolean isGeneratingSuccess = accountData.createAccountData(
                 link,
-                accountName,
-                cpNumber,
-                BCrypt.hashpw(mpin, BCrypt.gensalt()),
+                inputAccountName,
+                inputCpNumber,
+                BCrypt.hashpw(inputMpin, BCrypt.gensalt()),
                 isBusinessAccount ? "BUSINESS" : "BASIC",
-                businessName,
+                inputBusinessName,
                 isBusinessAccount ? "10000000" : "10000"
             );       
 
@@ -80,4 +81,12 @@ final public class AccountOperations {
             throw new RuntimeException("Database error: Authentication failed...", e);
         }
     }
+
+    public Account getAccountByCpNumber(String cpNumber) {
+    try (Connection conn = Database.getConnection()) {
+        return accountData.readAccountData(conn, cpNumber);
+    } catch (SQLException e) {
+        throw new RuntimeException("Database error while retrieving account", e);
+    }
+}
 }

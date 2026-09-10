@@ -7,13 +7,13 @@ final public class Business extends Account{
     private String businessName;
 
     public Business(
-        String username,
+        String name,
         String cpNumber,
         AccountType type,
         String businessName
     ) {
         super(
-            username,
+            name,
             cpNumber,
             type
         );
@@ -22,7 +22,7 @@ final public class Business extends Account{
 
     public Business (
         long accountID,
-        String username,
+        String name,
         String cpNumber,
         BigDecimal amount,
         String createdAt,
@@ -30,7 +30,7 @@ final public class Business extends Account{
     ) {
         super(
             accountID,
-            username,
+            name,
             cpNumber,
             amount,
             AccountType.BUSINESS,
@@ -45,14 +45,14 @@ final public class Business extends Account{
 
 
     @Override
-    protected BigDecimal getSendFee(BigDecimal givenAmount) {
+    public  BigDecimal getSendFee(BigDecimal givenAmount) {
         return super.getSendFee(givenAmount)
                     .multiply(new BigDecimal("0.90"));
     }
 
 
     @Override
-    protected BigDecimal getBillersFee() {
+    public  BigDecimal getBillersFee() {
         return BigDecimal.ZERO;
     }
 }

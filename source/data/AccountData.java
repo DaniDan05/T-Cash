@@ -17,7 +17,6 @@ import source.model.Basic;
 import source.model.Biller;
 import source.model.Business;
 
-import source.util.Database;
 import source.util.TimeFormat;
 
 final public class AccountData {
@@ -31,11 +30,11 @@ final public class AccountData {
             String businessName,
             String walletLimit
     ) throws SQLException {
-        String insertDataAccounts = 
+        String qInsertDataAccounts = 
             "INSERT INTO accounts(account_name, cp_number, mpin_hashed, account_type, business_name, created_at, wallet_limit) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?);";
 
-        try (PreparedStatement request = link.prepareStatement(insertDataAccounts)) {
+        try (PreparedStatement request = extension.prepareStatement(qInsertDataAccounts)) {
 
             request.setString(1, accountName);
             request.setString(2, cpNumber);
@@ -49,11 +48,25 @@ final public class AccountData {
         }
     }
 
+    public String findAccountName (Connection extension, String accountName) throws SQLException {
+        String qFindAccountName = 
+            "SELECT account_name " +
+            "FROM accounts WHERE account_name=?";
+        try (PreparedStatement request = extension.prepareStatement(qFindAccountName)
+        ) {
+            request.setString(1, accountName);
+
+            ResultSet response = request.executeQuery();
+
+            return response.next() ? response.getString("account_name") : null;
+        }
+    }
+
     public String findMpin (Connection extension, String cpNumber) throws SQLException {
-        String findMPin = 
+        String qFindMPin = 
             "SELECT mpin_hashed " +
             "FROM accounts WHERE cp_number=?";
-        try (PreparedStatement request = extension.prepareStatement(findMPin)
+        try (PreparedStatement request = extension.prepareStatement(qFindMPin)
         ) {
             request.setString(1, cpNumber);
 
@@ -64,39 +77,21 @@ final public class AccountData {
     }
 
     // Transfer
-    void checkWalletLimit(Connection extension, String receiverCpNumber, BigDecimal sendingAmount) 
-    throws SQLException {
-        // System.out.println(BLUE + "checkWalletLimit() call." + END);
-        
-        String findAmount = 
-            "SELECT amount, wallet_limit FROM accounts " + 
-            "WHERE cp_number=?";
-            
-        try (PreparedStatement request = extension.prepareStatement(findAmount)) {
-            request.setString(1, receiverCpNumber);
-
-            BigDecimal currentReceiverAmount = null, walletLimit = null;
-
-            ResultSet response = request.executeQuery();
-            // yung "if" statement 1 row only kapag while statement 2+ rows
-            if (response.next()) {
-                currentReceiverAmount = new BigDecimal(response.getString(1));
-                walletLimit = new BigDecimal(response.getString(2));
-            }
-            
-
-            // -1 yung left side mababa, 0 equal, 1 opposite nung -1
-            if (sendingAmount.add(currentReceiverAmount).compareTo(walletLimit) > 0)
-                throw new SQLException("Over the wallet limitation");
-        }                 
+    public BigDecimal findWalletLimit(Connection extension, String cpNumber) throws SQLException {
+    String sql = "SELECT wallet_limit FROM accounts WHERE cp_number=?";
+    try (PreparedStatement request = extension.prepareStatement(sql)) {
+        request.setString(1, cpNumber);
+        ResultSet response = request.executeQuery();
+        return response.next() ? response.getBigDecimal("wallet_limit") : null;
     }
+}
 
     // Transfer
     public void updateAccountData(Connection extension, BigDecimal amount, String cpNumber) throws SQLException {
         // System.out.println(BLUE + "updateData() call." + END);
-        String editData = "UPDATE accounts SET amount = ? WHERE cp_number = ?;";
+        String qEdit = "UPDATE accounts SET amount = ? WHERE cp_number = ?;";
 
-        try (PreparedStatement request = extension.prepareStatement(editData)) {
+        try (PreparedStatement request = extension.prepareStatement(qEdit)) {
             request.setString(1, amount.toPlainString());
             request.setString(2, cpNumber);
 
@@ -109,9 +104,9 @@ final public class AccountData {
     // TransactionOperation, Transfer
     public Account readAccountData(Connection extension, String cpNumber) throws SQLException {
         // System.out.println(BLUE + "readAccountData() call." + END);
-        final String showData = "SELECT * FROM accounts WHERE cp_number=?;";
+        final String qShowData = "SELECT * FROM accounts WHERE cp_number=?;";
         
-        try (PreparedStatement request = extension.prepareStatement(showData)) {
+        try (PreparedStatement request = extension.prepareStatement(qShowData)) {
             request.setString(1, cpNumber);
             
             ResultSet response = request.executeQuery();

@@ -1,88 +1,78 @@
 package source.service;
 
+import java.util.List;
 import java.util.Scanner;
+
+
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import source.data.AccountData;
+import source.data.TransactionHistoryData;
 
 import source.model.Account;
+import source.model.Account.AccountType;
+import source.model.Account.TransactionType;
+
+import source.util.Database;
+import source.util.Validator;
 
 final public class TransactionOperations {
+    final private AccountData accountData;
+    final private TransactionHistoryData transactionHistoryData;
     final private Transfer transfer;
 
-    public TransactionOperations (Transfer transfer) {
+    public TransactionOperations (AccountData accountData, TransactionHistoryData transactionHistoryData, Transfer transfer) {
+        this.accountData = accountData;
+        this.transactionHistoryData = transactionHistoryData;
         this.transfer = transfer;
     }
 
-    public void send(Scanner input){
+    
+    public void send(Account sender, Account receiver, BigDecimal amount){
 
         //─────INPUT AND VALIDATE─────//
-        System.out.println("Enter a Cellphone Number.");
-        String inputCpNumber = input.nextLine();
-
-        if (this.cpNumber.equals(inputCpNumber)) {
-            System.out.println("Cancelled: Self sending is not applicable");
-            return;
+        if (receiver == null) {
+            throw new IllegalArgumentException("Receiver account does not exist.");
         }
+        
+        BigDecimal fee = sender.getSendFee(amount);
+        BigDecimal totalDeduct = amount.add(fee);
+        if (sender.getAmount().compareTo(totalDeduct) < 0)
+            throw new IllegalArgumentException("Insufficient balance.");
 
-        Account receiverAccount = Database.readAccountData(inputCpNumber);
-        if (receiverAccount == null) {
-            System.out.println("Cancelled: Account does not exist.");
-            return;
-        }
-
-        System.out.println("Input Amount");
-        BigDecimal inputAmount = input.nextBigDecimal();
-        input.nextLine();
-
-        if (isInvalidAmount(inputAmount) || 
-            isInsufficientAmount(inputAmount.add(getSendFee(inputAmount))))
-            return;        
-
-        String cp = receiverAccount.getCpNumber();
-        System.out.println("Receipient: " + receiverAccount.getUsername() + 
-            "\nNumber: " + "******" + cp.substring(cp.length() - 5) + 
-            "\nType: " + receiverAccount.getAccountType() +
-            "\nFee: " + getSendFee(inputAmount) + 
-            "\nAmount: " + inputAmount + 
-            "\nDo you want to send it now?[Y/N]"
-        );
-
-        if(input.nextLine()
-                .trim()
-                .equalsIgnoreCase("N")){
-            System.out.println("Cancelled Transaction...");
-            return;
-        }
-
-
+        
         //─────MAIN─────//
-        try { 
-            this.amount = this.amount.subtract(
-                Database.transfer(
-                    this,
-                    receiverAccount,
-                    inputAmount,
-                    getSendFee(inputAmount),
-                    TransactionType.SEND
-                )
-            ); 
-        } catch (SQLException e) { 
-            // e.printStackTrace();
-            System.out.println("Sending Failed...\n");
+        try (Connection conn = Database.getConnection()) {
+            // Account refreshed = accountData.readAccountData(conn, receiver.getCpNumber()); // MySQL / PostgreSQL
+            // if (refreshed == null) {
+            //    throw new IllegalArgumentException("Receiver account does not exist.");
+            //}
+
+            transfer.main(conn, sender, receiver, amount, fee, TransactionType.SEND);
+            // success – service can now optionally fetch receipt if needed
+        } catch (SQLException e) {
+            throw new RuntimeException("Transfer failed", e);
         }
     }
 
-    
-    public void cashIn(Scanner input) {
-        
+    // TODO: FIX THIS IMMEDIATELY WITH THE checkWalletLimitation in AccountData.java
+    public void cashIn(Connection input) {
+        try (Connection link = Database.getConnection()) {
+            
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
         //─────GENERATE CONTAINER─────//
-        List<Account> agents = Database.getAccountsByType(AccountType.AGENT);
+        List<Account> agents = accountData.getAccountsByType(AccountType.AGENT);
         if (agents.isEmpty()) {
             System.out.println("No active agent available.");
             return;
         }
 
         //─────DISPLAY─────//
-        agents.forEach(x -> System.out.println(x.getUsername()));
+        agents.forEach(x -> System.out.println(x.getName()));
 
         //─────INPUT AND VALIDATE─────//
         System.out.println("Enter a agent name.");
@@ -95,11 +85,11 @@ final public class TransactionOperations {
         System.out.println("Input Amount");
         BigDecimal inputAmount = input.nextBigDecimal();
         input.nextLine();
-        if (isInvalidAmount(inputAmount))
+        if (Validator.isInvalidAmount(inputAmount))
             return;
 
         //─────MAIN─────//
-        try {
+        
             this.amount = this.amount.add(
                 Database.transfer(
                     targetAccount,
@@ -154,6 +144,24 @@ final public class TransactionOperations {
         } catch (SQLException e) { 
             // e.printStackTrace();
             System.out.println("Paying bills failed...");
+        }
+    }
+
+    private Account findAccount(List <Account> accounts, String targetName) {
+        for (Account account : accounts) {
+            if (account.getName().equalsIgnoreCase(targetName))
+                return account;
+        }
+        return null;
+    }
+
+
+    public boolean isReceiverNotExist(String receiverCpNumber) {
+        try (Connection connection = Database.getConnection()) {
+            Account temp = accountData.readAccountData(connection, receiverCpNumber);
+            return temp == null;
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error, reading database failed ", e);
         }
     }
 }

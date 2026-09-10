@@ -8,13 +8,13 @@ clean() {
 }
 
 function compile(){
-    java_compile="javac -d class -cp .:drivers/jbcrypt-0.4.jar:source/util/drivers/sqlite-jdbc-3.53.2.0.jar source/model/*.java source/service/*.java source/util/*.java source/Main.java"
+    java_compile="javac -d class -cp .:drivers/jbcrypt-0.4.jar:drivers/sqlite-jdbc-3.53.2.0.jar source/data/*.java source/model/*.java source/service/*.java source/ui/*.java source/util/*.java source/Main.java"
     printf "$java_compile\n\n"
     $java_compile
 }
 
 function execute(){
-    java_execute="java -cp class:source/util/drivers/jbcrypt-0.4.jar:source/util/drivers/sqlite-jdbc-3.53.2.0.jar source.Main"
+    java_execute="java -cp class:drivers/jbcrypt-0.4.jar:drivers/sqlite-jdbc-3.53.2.0.jar source.Main"
     printf "$java_execute\n\n"
 
     echo "Executing..."

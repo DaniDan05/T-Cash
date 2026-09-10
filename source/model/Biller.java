@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 
 final public class Biller extends Account{
 
-    public Biller (long accountID, String username, String cpNumber, BigDecimal amount) {
+    public Biller (long accountID, String name, String cpNumber, BigDecimal amount) {
         super(
             accountID,
-            username,
+            name,
             cpNumber,
             amount,
             AccountType.BILLER,

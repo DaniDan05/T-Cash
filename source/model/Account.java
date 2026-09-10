@@ -11,7 +11,7 @@ import java.math.RoundingMode;
 public abstract class Account{
 
     private long accountID;
-    private String username;
+    private String name;
     private String cpNumber;
     private BigDecimal amount;
     private AccountType type;
@@ -34,11 +34,11 @@ public abstract class Account{
     
      // para sa create ng data
     public Account(
-        String username,
+        String name,
         String cpNumber,
         AccountType type
     ) {
-        this.username = username;
+        this.name = name;
         this.cpNumber = cpNumber;
         this.type = type;
     }
@@ -46,14 +46,14 @@ public abstract class Account{
     // For getting info
     public Account(
         long accountID,
-        String username,
+        String name,
         String cpNumber,
         BigDecimal amount,
         AccountType type,
         String createdAt
     ) {
         this.accountID = accountID;
-        this.username = username;
+        this.name = name;
         this.cpNumber = cpNumber;
         this.amount = amount;
         this.type = type;
@@ -63,7 +63,7 @@ public abstract class Account{
    
 
 
-    protected BigDecimal getSendFee(BigDecimal givenAmount) {
+    public BigDecimal getSendFee(BigDecimal givenAmount) {
 
         return givenAmount.divide(
             new BigDecimal("100.00"),
@@ -73,7 +73,7 @@ public abstract class Account{
     }
 
 
-    protected BigDecimal getBillersFee() {
+    public BigDecimal getBillersFee() {
         return new BigDecimal("30");
     }
 
@@ -81,8 +81,8 @@ public abstract class Account{
         return accountID;
     }
 
-    public String getUsername(){
-        return username;
+    public String getName(){
+        return name;
     }
 
     public String getCpNumber(){
@@ -99,34 +99,5 @@ public abstract class Account{
 
     public String getCreatedAt() {
         return createdAt;
-    }
-
-
-    private Account findAccount(List <Account> accounts, String targetName) {
-        for (Account account : accounts) {
-            if (account.getUsername().equalsIgnoreCase(targetName))
-                return account;
-        }
-        return null;
-    }
-
-
-    private boolean isInvalidAmount(BigDecimal inputAmount) {
-        if (inputAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            System.out.println("Cancelled: Invalid Value.");
-            return true;
-        }
-
-        return false;
-    }
-
-    
-    private boolean isInsufficientAmount(BigDecimal inputAmount) {
-        if (this.amount.compareTo(inputAmount) < 0) {
-            System.out.println("Cancelled: Insufficient amount.");
-            return true;
-        }
-
-        return false;
     }
 }

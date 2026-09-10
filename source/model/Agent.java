@@ -5,10 +5,10 @@ import java.math.BigDecimal;
 
 final public class Agent extends Account{
 
-    public Agent (long accountID, String username, String cpNumber) {
+    public Agent (long accountID, String name, String cpNumber) {
         super(
             accountID,
-            username,
+            name,
             cpNumber,
             new BigDecimal(999999999999999L),
             AccountType.AGENT,

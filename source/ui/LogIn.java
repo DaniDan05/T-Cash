@@ -2,13 +2,14 @@ package source.ui;
 
 import java.util.Scanner;
 
-import source.Main;
 import source.model.Account;
+
 import source.service.AccountOperations;
 import source.service.TransactionHistoryOperations;
 import source.service.TransactionOperations;
-import source.util.Database;
-import source.util.Database;
+
+import source.util.Validator;
+
 
 final class LogIn {
     final private Scanner input;
@@ -16,7 +17,7 @@ final class LogIn {
     final private TransactionOperations transactionOperations;
     final private TransactionHistoryOperations transactionHistoryOperations;
 
-    public LogIn(
+    LogIn(
         Scanner input,
         AccountOperations accountOperations,
         TransactionOperations transactionOperations,
@@ -35,13 +36,22 @@ final class LogIn {
             System.out.println("\nLOG IN\n\nCellphone Number");
             String inputCpNumber = input.nextLine();
 
+            if(Validator.isInvalidCpNumber(inputCpNumber)) {
+                System.out.println("Length must be 11");
+                continue;
+            }
+
             System.out.println("MPIN");
-            String inputMPin = input.nextLine();
+            String inputMpin = input.nextLine();
+            if (Validator.isInvalidMpin(inputMpin)) {
+                System.out.println("Length must be 6.");
+                continue;
+            }
 
             // Open the account menu only when the account exists and
             // the supplied MPIN is valid.
             try {
-                Account loggedAccount = accountOperations.authenticate(inputCpNumber, inputMPin);
+                Account loggedAccount = accountOperations.authenticate(inputCpNumber, inputMpin);
                 new Session(
                     input,
                     loggedAccount,
@@ -49,11 +59,12 @@ final class LogIn {
                     transactionOperations,
                     transactionHistoryOperations
                 ).execute();
-                System.out.println("Log in successfully.");
+
+                System.out.println("Logging out...");
+                break; // Para mag log out talaga5
             } catch (RuntimeException e) {
                 System.out.println("Log in error, " + e.getMessage());
             }
         }       
-
     }
 }

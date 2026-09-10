@@ -19,16 +19,7 @@ import source.util.TimeFormat;
 
 final public class TransactionHistoryData {
 
-    public List<TransactionHistory> retrieveTransactionHistories(long loggedAccountId) {
-        return fetchTransactions(loggedAccountId, 0);
-    }
-
-    TransactionHistory retrieveReceipt(long loggedAccountId) {
-        List<TransactionHistory> list = fetchTransactions(loggedAccountId, 1);
-        return list.isEmpty() ? null : list.get(0);
-    }
-
-    void recordTransaction(
+    public void recordTransaction(
         Connection extension,
         long senderId,
         long receiverId,
@@ -58,7 +49,7 @@ final public class TransactionHistoryData {
         }
     }
 
-    static private List<TransactionHistory> fetchTransactions(long loggedAccountId, int maxRows) {
+    public List<TransactionHistory> fetchTransactions(Connection extension, long loggedAccountId, int maxRows) {
         List<TransactionHistory> temp = new ArrayList<>();
 
         StringBuilder fetch = new StringBuilder(
@@ -86,8 +77,7 @@ final public class TransactionHistoryData {
             fetch.append(" LIMIT ").append(maxRows);
         }
 
-        try (Connection link = Database.getConnection();
-            PreparedStatement request = link.prepareStatement(fetch.toString())) {
+        try (PreparedStatement request = extension.prepareStatement(fetch.toString())) {
 
             request.setLong(1, loggedAccountId);
             request.setLong(2, loggedAccountId);
