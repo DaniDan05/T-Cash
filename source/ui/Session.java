@@ -1,11 +1,16 @@
 package source.ui;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.Scanner;
+import java.util.List;
 
 import source.model.Account;
+import source.model.Account.AccountType;
+import source.model.Account.TransactionType;
 import source.model.Business;
 
+import source.service.Transfer;
 import source.service.AccountOperations;
 import source.service.TransactionHistoryOperations;
 import source.service.TransactionOperations;
@@ -41,7 +46,7 @@ final class Session {
                 loggedAccount.getName() +
                 "\nAccount Type: " + loggedAccount.getAccountType() +
                 (loggedAccount instanceof Business ? "\nBusiness Name: " + ((Business)loggedAccount).getBusinessName() : "") + 
-                "\nBALANCE: " + loggedAccount.getAmount() + 
+                "\nBALANCE: ₱" + loggedAccount.getBalance() + 
                 "\n1: Send, 2: Cash In, 3: Pay Bills, 4: Transaction History"
             );
 
@@ -52,20 +57,25 @@ final class Session {
                 case "1":
                     viewSendMenu();
                     break;
-                case "2":
-                    /* Cash In */
-                    // transactionOperations.cashIn(input);
+                case "2":     
                     viewCashInMenu();
+                    break;
 
                 case "3":
-                    // transactionOperations.payBills(input);
                     viewPayBillsMenu();
-                    System.out.println("Transfer successfully.\n\n" + transactionHistoryOperations.retrieveReceipt("2" == choice ? receiverAccount.getAccountID() : senderAccount.getAccountID()));
                     break;
                 case "4":
-                    transactionHistoryOperations.retrieveTransactionHistories(loggedAccount.getAccountID())
+                    try {
+                        transactionHistoryOperations.retrieveTransactionHistories(loggedAccount.getAccountID())
                            .forEach(x -> System.out.println(x));
+                    
+                    } catch (IllegalArgumentException e) { 
+                        System.out.println(e.getMessage());
+                    } catch (RuntimeException e) {
+                        System.out.println("Retrieving error, " + e.getMessage());
+                    }
                     break;
+                    
                 default:
                     System.out.println("Exit...");
                     break MENU;
@@ -82,60 +92,190 @@ final class Session {
             return;
         }
 
-
-        Account receiver = accountOperations.getAccountByCpNumber(receiverCp);
-        if (receiver == null) {
-            System.out.println("Account does not exist.");
-            return;
-        }
-
-        if (loggedAccount.getAccountID() == receiver.getAccountID()) {
-            System.out.println("Self sending is not applicable.");
-            return;
-        }
-
-
         System.out.println("Input Amount");
         BigDecimal amount = input.nextBigDecimal();
         input.nextLine();
 
         if(Validator.isInvalidAmount(amount)) {
-            System.out.println("Invalid amount");
+            System.out.println("Invalid amount.");
+            return;
         }
 
+        // Business Logic (Connection guaranteed):
+        // Self send 
+        // If the target account exist
+        // Wallet limit
+        // kapag malaki yung amount kesa sa current amount ni sender
+
         BigDecimal fee = loggedAccount.getSendFee(amount); 
+        try {
+            // Read Only
+            Account receiver = transactionOperations.checkSendDataAndGetReceiverAccount(loggedAccount, receiverCp, amount, fee);
+            // BigDecimal totalAmount = amount.add(fee);
 
-        String censordNumber = 
-            "******" + receiver.getCpNumber()
-                               .substring(
-                                receiver.getCpNumber().length() - 5
-                            );
-        System.out.println("Recipient: " + receiver.getName() +
-            "\nNumber: " + censordNumber +
-            "\nType: " + receiver.getAccountType() +
-            "\nFee: " + fee +
-            "\nAmount: " + amount +
-            "\nDo you want to send it now? [Y/N]");
+            String censordNumber = 
+                "******" + receiver.getCpNumber()
+                                .substring(
+                                    receiver.getCpNumber().length() - 5
+                                );
+            System.out.println("Recipient: " + receiver.getName() +
+                "\nNumber: " + censordNumber +
+                "\nType: " + receiver.getAccountType() +
+                "\nFee: " + fee +
+                "\nAmount: " + amount +
+                "\nDo you want to send it now? [Y/N]");
 
+            if (input.nextLine().trim().equalsIgnoreCase("N")) {
+                System.out.println("Cancelled Transaction...");
+                return;
+            }
+
+            transactionOperations.getTransfer(
+                loggedAccount,
+                receiver,
+                amount,
+                fee,
+                TransactionType.SEND
+            );
+            System.out.println("Transfer successfully.\n" + transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+        } catch (RuntimeException e) {
+            System.out.println("Send error, " + e.getMessage());
+        }
+    }
+
+
+    private void viewCashInMenu() {
+        List<Account> agents;
+        try{
+            agents = transactionOperations.retrieveAccounts(AccountType.AGENT);
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            System.out.println("Cash in error, " + e.getMessage());
+            return;
+        }
+        
+        agents.forEach(agent -> System.out.println(agent.getName())); // service
+
+        System.out.println("Enter a agent name.");
+        Account targetAgent;
+        try{
+            targetAgent = transactionOperations.findAccount(agents, input.nextLine()); // service
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        }
+        
+        System.out.println("Input Amount");
+        BigDecimal inputAmount = input.nextBigDecimal();
+        input.nextLine();
+        if (Validator.isInvalidAmount(inputAmount)){
+            System.out.println("Invalid amount.");
+            return;
+        }
+
+        try {
+            transactionOperations.validateWalletLimit(loggedAccount.getBalance(), inputAmount, loggedAccount.getWalletLimit());
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            System.out.println("Cash in error, " + e.getMessage());
+            return;
+        }
+
+        System.out.println("Cash in " + inputAmount + " from " + targetAgent.getName() + "? [Y/N]");
+        if (input.nextLine().trim().equalsIgnoreCase("N")) {
+            System.out.println("Cancelled Transaction...");
+            return;
+        }
+
+        try {            
+            transactionOperations.getTransfer(
+                targetAgent,
+                loggedAccount,
+                inputAmount,
+                BigDecimal.ZERO,
+                TransactionType.CASH_IN
+            );
+            System.out.println("Transfer successfully.\n\n" + transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            System.out.println("Cash in error, " + e.getMessage());
+            return;
+        }
+    }
+
+    private void viewPayBillsMenu() {
+        List<Account> billers;
+        try{
+            billers = transactionOperations.retrieveAccounts(AccountType.BILLER);
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            System.out.println("Pay bills error, " + e.getMessage());
+            return;
+        }
+        
+        billers.forEach(biller -> System.out.println(biller.getName()));
+
+        System.out.println("Enter a biller name.");
+        Account targetBiller;
+        try{
+            targetBiller = transactionOperations.findAccount(billers, input.nextLine());
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            System.out.println("Pay bills error, " + e.getMessage());
+            return;
+        }
+
+        System.out.println("Input Amount");
+        BigDecimal inputAmount = input.nextBigDecimal();
+        input.nextLine();
+        if (Validator.isInvalidAmount(inputAmount)){
+            System.out.println("Invalid amount.");
+            return;
+        }
+
+        BigDecimal billersFee = loggedAccount.getBillersFee();
+        System.out.println("Biller: " + targetBiller.getName() +
+            "\nAmount: " + inputAmount +
+            "\nFee: " + billersFee +
+            "\nTotal: " + inputAmount.add(billersFee) +
+            "\nPay this bill? [Y/N]");
         if (input.nextLine().trim().equalsIgnoreCase("N")) {
             System.out.println("Cancelled Transaction...");
             return;
         }
 
         try {
-            transactionOperations.send(loggedAccount, receiver, amount);
-            System.out.println("Transfer successfully.\n" + transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+            transactionOperations.validateSufficientBalance(
+                loggedAccount.getBalance(), inputAmount.add(billersFee));
+
+            transactionOperations.getTransfer(
+                loggedAccount,        // sender = logged account
+                targetBiller,         // receiver = biller
+                inputAmount,
+                billersFee,           // may fee
+                TransactionType.PAY_BILLS);
+
+            System.out.println("Transfer successfully.\n\n" + 
+                transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
         } catch (RuntimeException e) {
-            System.out.println("Send error, " + e.getMessage());
+            System.out.println("Pay bills error, " + e.getMessage());
+            return;
         }
-    }
-
-    private void viewCashInMenu() {
-        System.out.println("Transfer successfully.\n\n" + transactionHistoryOperations.retrieveReceipt(receiverAccount.getAccountID()));
-                    break;
-    }
-
-    private void viewPayBillsMenu() {
-
     }
 }

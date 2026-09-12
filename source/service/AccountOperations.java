@@ -46,8 +46,7 @@ final public class AccountOperations {
                 inputCpNumber,
                 BCrypt.hashpw(inputMpin, BCrypt.gensalt()),
                 isBusinessAccount ? "BUSINESS" : "BASIC",
-                inputBusinessName,
-                isBusinessAccount ? "10000000" : "10000"
+                inputBusinessName
             );       
 
             if (!isGeneratingSuccess)

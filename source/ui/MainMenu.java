@@ -29,10 +29,7 @@ final public class MainMenu {
 
         MAIN_MENU: while(true){
             
-            System.out.println(
-                "WELCOME TO T-CASH\n" +
-                "1: Log In, 2: Register, 3: Exit."
-            );
+            printMainMenu();
 
             String choice = input.nextLine();
 
@@ -54,6 +51,24 @@ final public class MainMenu {
                     break MAIN_MENU;
             }
         }
+    }
 
+    private void printMainMenu() {
+        
+    System.out.print("""
+            ╔══════════════════════════════════╗
+            ║     💰  WELCOME TO T-CASH  💰    ║
+            ╠══════════════════════════════════╣
+            ║           ⟪ MAIN MENU ⟫          ║
+            ╠══════════════════════════════════╣
+            ║                                  ║
+            ║   [1]  🔐  LOG IN                ║
+            ║   [2]  📝  REGISTER              ║
+            ║   [3]  🚪  EXIT                  ║
+            ║                                  ║
+            ╚══════════════════════════════════╝
+            SELECT AN OPTION:
+            """
+        );
     }
 }

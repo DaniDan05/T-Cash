@@ -27,24 +27,22 @@ final public class AccountData {
             String cpNumber,
             String mpinHashed,
             String accountType,
-            String businessName,
-            String walletLimit
+            String businessName
     ) throws SQLException {
         String qInsertDataAccounts = 
-            "INSERT INTO accounts(account_name, cp_number, mpin_hashed, account_type, business_name, created_at, wallet_limit) " +
+            "INSERT INTO accounts(account_name, cp_number, mpin_hashed, account_type, business_name, created_at) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?);";
 
-        try (PreparedStatement request = extension.prepareStatement(qInsertDataAccounts)) {
+        try (PreparedStatement statement = extension.prepareStatement(qInsertDataAccounts)) {
 
-            request.setString(1, accountName);
-            request.setString(2, cpNumber);
-            request.setString(3, mpinHashed);
-            request.setString(4, accountType);
-            request.setString(5, businessName);
-            request.setString(6, TimeFormat.currentTimeStamp());
-            request.setString(7, walletLimit);
+            statement.setString(1, accountName);
+            statement.setString(2, cpNumber);
+            statement.setString(3, mpinHashed);
+            statement.setString(4, accountType);
+            statement.setString(5, businessName);
+            statement.setString(6, TimeFormat.currentTimeStamp());
 
-            return request.executeUpdate() == 1;
+            return statement.executeUpdate() == 1;
         }
     }
 
@@ -52,13 +50,13 @@ final public class AccountData {
         String qFindAccountName = 
             "SELECT account_name " +
             "FROM accounts WHERE account_name=?";
-        try (PreparedStatement request = extension.prepareStatement(qFindAccountName)
+        try (PreparedStatement statement = extension.prepareStatement(qFindAccountName)
         ) {
-            request.setString(1, accountName);
+            statement.setString(1, accountName);
 
-            ResultSet response = request.executeQuery();
+            ResultSet result = statement.executeQuery();
 
-            return response.next() ? response.getString("account_name") : null;
+            return result.next() ? result.getString("account_name") : null;
         }
     }
 
@@ -66,37 +64,27 @@ final public class AccountData {
         String qFindMPin = 
             "SELECT mpin_hashed " +
             "FROM accounts WHERE cp_number=?";
-        try (PreparedStatement request = extension.prepareStatement(qFindMPin)
+        try (PreparedStatement statement = extension.prepareStatement(qFindMPin)
         ) {
-            request.setString(1, cpNumber);
+            statement.setString(1, cpNumber);
 
-            ResultSet response = request.executeQuery();
+            ResultSet result = statement.executeQuery();
 
-            return response.next() ? response.getString("mpin_hashed") : null;
+            return result.next() ? result.getString("mpin_hashed") : null;
         }
     }
 
     // Transfer
-    public BigDecimal findWalletLimit(Connection extension, String cpNumber) throws SQLException {
-    String sql = "SELECT wallet_limit FROM accounts WHERE cp_number=?";
-    try (PreparedStatement request = extension.prepareStatement(sql)) {
-        request.setString(1, cpNumber);
-        ResultSet response = request.executeQuery();
-        return response.next() ? response.getBigDecimal("wallet_limit") : null;
-    }
-}
-
-    // Transfer
-    public void updateAccountData(Connection extension, BigDecimal amount, String cpNumber) throws SQLException {
+    public void updateAccountData(Connection extension, BigDecimal balance, String cpNumber) throws SQLException {
         // System.out.println(BLUE + "updateData() call." + END);
-        String qEdit = "UPDATE accounts SET amount = ? WHERE cp_number = ?;";
+        String qEdit = "UPDATE accounts SET balance = ? WHERE cp_number = ?;";
 
-        try (PreparedStatement request = extension.prepareStatement(qEdit)) {
-            request.setString(1, amount.toPlainString());
-            request.setString(2, cpNumber);
+        try (PreparedStatement statement = extension.prepareStatement(qEdit)) {
+            statement.setString(1, balance.toPlainString());
+            statement.setString(2, cpNumber);
 
             // Exactly one account should be updated by this statement.
-            if(request.executeUpdate() == 0)
+            if(statement.executeUpdate() == 0)
                 throw new SQLException("Database failed: Failed to update data in database");
         } 
     }
@@ -106,40 +94,40 @@ final public class AccountData {
         // System.out.println(BLUE + "readAccountData() call." + END);
         final String qShowData = "SELECT * FROM accounts WHERE cp_number=?;";
         
-        try (PreparedStatement request = extension.prepareStatement(qShowData)) {
-            request.setString(1, cpNumber);
+        try (PreparedStatement statement = extension.prepareStatement(qShowData)) {
+            statement.setString(1, cpNumber);
             
-            ResultSet response = request.executeQuery();
+            ResultSet result = statement.executeQuery();
 
             long id = 0;
             String username = null, account_type = null, created_at = null,
                 business_name = null, cpNum = null;
             
-            BigDecimal amount = null;
+            BigDecimal balance = null;
 
-            if (response.next()) {
-                id = response.getLong("id");
-                username = response.getString("account_name");
-                cpNum = response.getString("cp_number");
-                amount = response.getBigDecimal("amount");
-                account_type = response.getString("account_type");
-                created_at = response.getString("created_at");
-                business_name = response.getString("business_name");
+            if (result.next()) {
+                id = result.getLong("id");
+                username = result.getString("account_name");
+                cpNum = result.getString("cp_number");
+                balance = result.getBigDecimal("balance");
+                account_type = result.getString("account_type");
+                created_at = result.getString("created_at");
+                business_name = result.getString("business_name");
             } else 
                 return null;
 
             switch (AccountType.valueOf(account_type)) {
                 case BASIC:
-                    return new Basic(id, username, cpNum, amount, created_at);
+                    return new Basic(id, username, cpNum, balance, created_at);
 
                 case BUSINESS:
-                    return new Business(id, username, cpNum, amount, created_at, business_name);
+                    return new Business(id, username, cpNum, balance, created_at, business_name);
 
                 case AGENT:
                     return new Agent(id, username, cpNum);
 
                 case BILLER:
-                    return new Biller(id, username,cpNum, amount);
+                    return new Biller(id, username,cpNum, balance);
             
                 default:
                     return null;
@@ -150,12 +138,12 @@ final public class AccountData {
     // Transaction Operations
     public List<Account> getAccountsByType(Connection extension, AccountType type) throws SQLException {
         List<Account> temp = new ArrayList<>();
-        String readType = "SELECT cp_number FROM accounts WHERE account_type = ? ";
-        try (PreparedStatement request = extension.prepareStatement(readType)) {
-            request.setString(1, type.name());   
-            ResultSet response = request.executeQuery();
-            while (response.next()) {
-                Account account = readAccountData(extension, response.getString("cp_number"));
+        String qGetAccountsByType = "SELECT cp_number FROM accounts WHERE account_type = ? ";
+        try (PreparedStatement statement = extension.prepareStatement(qGetAccountsByType)) {
+            statement.setString(1, type.name());   
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                Account account = readAccountData(extension, result.getString("cp_number"));
                 if (account != null) {
                     temp.add(account);
                 }

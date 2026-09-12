@@ -13,9 +13,10 @@ public abstract class Account{
     private long accountID;
     private String name;
     private String cpNumber;
-    private BigDecimal amount;
+    private BigDecimal balance;
     private AccountType type;
     private String createdAt;
+    private BigDecimal walletLimit; // TODO: Remove mo ito ilagay mo sa database as column it can be modified by malicious attacks
 
 
     public static enum AccountType {
@@ -48,16 +49,18 @@ public abstract class Account{
         long accountID,
         String name,
         String cpNumber,
-        BigDecimal amount,
+        BigDecimal balance,
         AccountType type,
-        String createdAt
+        String createdAt,
+        BigDecimal walletLimit
     ) {
         this.accountID = accountID;
         this.name = name;
         this.cpNumber = cpNumber;
-        this.amount = amount;
+        this.balance = balance;
         this.type = type;
         this.createdAt = createdAt;
+        this.walletLimit = walletLimit;
     }
 
    
@@ -70,6 +73,10 @@ public abstract class Account{
             0,
             RoundingMode.CEILING).multiply(new BigDecimal("2")
         );
+    }
+
+    public void setBalance(BigDecimal balance){
+        this.balance = balance;
     }
 
 
@@ -89,8 +96,8 @@ public abstract class Account{
         return cpNumber;
     }
 
-    public BigDecimal getAmount(){
-        return amount;
+    public BigDecimal getBalance(){
+        return balance;
     }
 
     public AccountType getAccountType() {
@@ -99,5 +106,9 @@ public abstract class Account{
 
     public String getCreatedAt() {
         return createdAt;
+    }
+    
+    public BigDecimal getWalletLimit() {
+        return walletLimit;
     }
 }

@@ -14,7 +14,6 @@ import java.util.UUID;
 import source.model.Account;
 import source.model.TransactionHistory;
 
-import source.util.Database;
 import source.util.TimeFormat;
 
 final public class TransactionHistoryData {
@@ -23,7 +22,7 @@ final public class TransactionHistoryData {
         Connection extension,
         long senderId,
         long receiverId,
-        BigDecimal amount,
+        BigDecimal balance,
         BigDecimal fee,
         Account.TransactionType transactionType
     ) throws SQLException {
@@ -31,21 +30,21 @@ final public class TransactionHistoryData {
 
         String insertDataTransactions = 
             "INSERT INTO transactions(sender_id, receiver_id, amount, fee, transaction_type, created_at, reference_number) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement request = extension.prepareStatement(insertDataTransactions)) {
-            request.setLong(1, senderId);
-            request.setLong(2, receiverId);
-            request.setString(3, amount.toPlainString());
-            request.setString(4, fee.toPlainString());
-            request.setString(5, transactionType.toString());
-            request.setString(6, TimeFormat.currentTimeStamp());
+        try (PreparedStatement statement = extension.prepareStatement(insertDataTransactions)) {
+            statement.setLong(1, senderId);
+            statement.setLong(2, receiverId);
+            statement.setString(3, balance.toPlainString());
+            statement.setString(4, fee.toPlainString());
+            statement.setString(5, transactionType.toString());
+            statement.setString(6, TimeFormat.currentTimeStamp());
 
             String generatedReference = UUID.randomUUID()
                 .toString()
                 .substring(0, 12)
                 .toUpperCase();
-            request.setString(7, generatedReference);
+            statement.setString(7, generatedReference);
 
-            request.executeUpdate();
+            statement.executeUpdate();
         }
     }
 
@@ -77,47 +76,47 @@ final public class TransactionHistoryData {
             fetch.append(" LIMIT ").append(maxRows);
         }
 
-        try (PreparedStatement request = extension.prepareStatement(fetch.toString())) {
+        try (PreparedStatement statement = extension.prepareStatement(fetch.toString())) {
 
-            request.setLong(1, loggedAccountId);
-            request.setLong(2, loggedAccountId);
+            statement.setLong(1, loggedAccountId);
+            statement.setLong(2, loggedAccountId);
 
-            ResultSet response = request.executeQuery();
+            ResultSet result = statement.executeQuery();
 
-            while (response.next()) {
-                long senderId = response.getLong("sender_id");
-                String senderName = response.getString("sender_name");
-                String senderCp = response.getString("sender_cp");
-                String receiverName = response.getString("receiver_name");
-                String receiverCp = response.getString("receiver_cp");
+            while (result.next()) {
+                long senderId = result.getLong("sender_id");
+                String senderName = result.getString("sender_name");
+                String senderCp = result.getString("sender_cp");
+                String receiverName = result.getString("receiver_name");
+                String receiverCp = result.getString("receiver_cp");
 
                 String otherName, otherCp, role;
                 if (senderId == loggedAccountId) {
                     otherName = receiverName;
                     otherCp = receiverCp;
-                    role = "SEND";
+                    role = "SENT";
                 } else {
                     otherName = senderName;
                     otherCp = senderCp;
-                    role = "RECEIVE";
+                    role = "RECEIVED";
                 }
 
                 temp.add(new TransactionHistory(
                     role,
                     otherName,
                     otherCp,
-                    response.getBigDecimal("amount"),
-                    response.getBigDecimal("fee"),
-                    response.getString("transaction_type"),
-                    response.getString("created_at"),
-                    response.getString("reference_number")
+                    result.getBigDecimal("amount"),
+                    result.getBigDecimal("fee"),
+                    result.getString("transaction_type"),
+                    result.getString("created_at"),
+                    result.getString("reference_number")
                 ));
             }
 
             return temp;
 
         } catch (SQLException e) {
-            return new ArrayList<>();
+            throw new RuntimeException("Database error, can't fetch transaction history...");
         }
     }
 }

@@ -19,6 +19,11 @@ final class Register {
         System.out.println("\nREGISTER\n\nUsername (Min of 4 char and max of 50 char)");
         String inputUserName = input.nextLine();
 
+        if(Validator.isNotFormatName(inputUserName)) {
+            System.out.println("Alphanumerical, space and underscore only.");
+            return;
+        }
+
         if (Validator.isInvalidName(inputUserName)) {
             System.out.println("Length must be 4 - 50");
             return; 
@@ -26,6 +31,11 @@ final class Register {
 
         System.out.println("Cellphone Number");
         String inputCpNumber = input.nextLine();
+
+        if(Validator.isNotNumerical(inputCpNumber)) {
+            System.out.println("Number symbols only.");
+            return;
+        }
 
         if (Validator.isInvalidCpNumber(inputCpNumber)) {
             System.out.println("Length must be 11");
@@ -35,13 +45,18 @@ final class Register {
         System.out.println("MPIN");
         String inputMpin = input.nextLine().trim();
 
+        if(Validator.isNotNumerical(inputMpin)) {
+            System.out.println("Number symbols only.");
+            return;
+        }
+
         if (Validator.isInvalidMpin(inputMpin)) {
             System.out.println("Length must be 6.");
             return;
         }
 
         System.out.println("Confirm MPIN");
-        if ( !inputMpin.equals(input.nextLine()) ) {
+        if ( !inputMpin.equals(input.nextLine())) {
             System.out.println("Password Credentials is not the same.");
             return;
         }
@@ -54,6 +69,12 @@ final class Register {
         if (isBusinessAccount) {
             System.out.println("Input Business name");
             inputBusinessName = input.nextLine();
+
+            if(Validator.isNotFormatName(inputUserName)) {
+                System.out.println("Alphanumerical, space and underscore only.");
+                return;
+            }
+
             if (Validator.isInvalidBusinessName(inputBusinessName)) {
                 System.out.println("Limited 4 - 50 range of characters.");
                 return;
@@ -70,6 +91,9 @@ final class Register {
             );
 
             System.out.println("Account Generated.");
+        } catch (IllegalArgumentException e) { 
+            System.out.println(e.getMessage());
+            return;
         } catch (RuntimeException e) {
             System.out.println("Register error, " + e.getMessage());
         }

@@ -24,7 +24,7 @@ final public class Business extends Account{
         long accountID,
         String name,
         String cpNumber,
-        BigDecimal amount,
+        BigDecimal balance,
         String createdAt,
         String businessName
     ) {
@@ -32,9 +32,10 @@ final public class Business extends Account{
             accountID,
             name,
             cpNumber,
-            amount,
+            balance,
             AccountType.BUSINESS,
-            createdAt
+            createdAt,
+            new BigDecimal(10_000_000)
         );
         this.businessName = businessName;
     }

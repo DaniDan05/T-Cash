@@ -70,15 +70,18 @@ public class TransactionHistory {
     
     @Override
     public String toString(){
+        boolean isSend = "SENT".equals(getRole());
+        String sign = isSend ? "-" : "+";
+        String fee = isSend ? "\nFee: -₱" + getFee() : "";
         return getRole() +
             "\nName: " + getCounterpartyName() + 
             "\nNumber: " + getCounterpartyCpNumber() + 
-            "\nAmount: " + getAmount() + 
-            "\nFee: " + getFee() + 
+            "\nAmount: " + sign + "₱"+ getAmount() + 
+            fee + 
             "\nType: " + getTransactionType() + 
             "\nTime Generated: " + getCreatedAt() + 
             "\nReference Number: " + getReferenceNumber() + 
-            "\n===================\n";
+            "\n\n===================\n";
     }
 
 

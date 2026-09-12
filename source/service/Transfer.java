@@ -18,46 +18,37 @@ final public class Transfer {
         this.transactionHistoryData = transactionHistoryData;
     }
     
-    public BigDecimal main (
-        Connection extension,
+    public void main (
+        Connection link,
         Account senderAccount,
         Account receiverAccount,
         BigDecimal amount,
         BigDecimal fee,
         Account.TransactionType transactionType 
     ) throws SQLException {
-        BigDecimal total = BigDecimal.ZERO;
         try {
             // START
-            extension.setAutoCommit(false);
+            link.setAutoCommit(false);
 
-            // sender Deduction
-            BigDecimal currentAmount = senderAccount.getAmount().subtract(amount.add(fee));
-            if (currentAmount.compareTo(BigDecimal.ZERO) < 0)
-                throw new IllegalArgumentException("Insufficient balance.");
 
-            // Update sender data
-            accountData.updateAccountData(extension, currentAmount, senderAccount.getCpNumber());
+            // Update sender balance in local
+            BigDecimal 
+                totalAmount = amount.add(fee),
+                newSenderBalance = senderAccount.getBalance().subtract(totalAmount);
+            senderAccount.setBalance(newSenderBalance);
+
+            // Update sender balance in database
+            accountData.updateAccountData(link, newSenderBalance, senderAccount.getCpNumber());
  
-
-            BigDecimal walletLimit = accountData.findWalletLimit(extension, receiverAccount.getCpNumber());
-            if (walletLimit == null) 
-                throw new IllegalArgumentException("Receiver account does not exist.");
-            
-            // Receiver additional
-            BigDecimal newReceiverBalance = receiverAccount.getAmount().add(amount);
-            if (newReceiverBalance.compareTo(walletLimit) > 0) 
-                throw new IllegalArgumentException("Over wallet limitation.");
-
             // Update receiver data
-            accountData.updateAccountData(extension, amount.add(receiverAccount.getAmount()), receiverAccount.getCpNumber());
-                
-            // Update local value
-            total = amount.add(fee); // Return the total amount deducted from the sender.
+            BigDecimal newReceiverBalance = amount.add(receiverAccount.getBalance());
+            accountData.updateAccountData(link, newReceiverBalance, receiverAccount.getCpNumber());
+            receiverAccount.setBalance(newReceiverBalance); // for local receiver account
+
 
             // i-record sa transactions table
             transactionHistoryData.recordTransaction(
-                extension,
+                link,
                 senderAccount.getAccountID(),
                 receiverAccount.getAccountID(), 
                 amount,
@@ -65,15 +56,11 @@ final public class Transfer {
                 transactionType
             );
 
-            extension.commit();  // END
+            link.commit();  // END
 
         }catch (SQLException e) {
-            extension.rollback();
+            link.rollback();
             throw new RuntimeException("Database error while transfering the money ", e);
-        } catch (IllegalArgumentException e) {
-            extension.rollback();
-            throw e;  //
         }
-        return total;
     }
 }

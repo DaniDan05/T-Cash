@@ -21,16 +21,17 @@ final public class Basic extends Account{
         long accountID,
         String name,
         String cpNumber,
-        BigDecimal amount,
+        BigDecimal balance,
         String createdAt
     ) {
         super(
             accountID,
             name,
             cpNumber,
-            amount,
+            balance,
             AccountType.BASIC,
-            createdAt
+            createdAt,
+            new BigDecimal(10_000)
         );
     }
     

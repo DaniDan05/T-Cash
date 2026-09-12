@@ -29,7 +29,10 @@ final public class TransactionHistoryOperations {
     public TransactionHistory retrieveReceipt(long accountId) {
         try (Connection conn = Database.getConnection()) {
             List<TransactionHistory> list = transactionHistoryData.fetchTransactions(conn, accountId, 1);
-            return list.isEmpty() ? null : list.get(0);
+            if (list.isEmpty())
+                throw new IllegalArgumentException("Receipt is empty");
+            
+            return list.get(0);
         } catch (SQLException e) {
             throw new RuntimeException("Database error: Could not retrieve receipt", e);
         }
