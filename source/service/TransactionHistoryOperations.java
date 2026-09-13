@@ -2,7 +2,9 @@ package source.service;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+
 import java.util.List;
+import java.util.Collections;
 
 import source.data.TransactionHistoryData;
 import source.model.TransactionHistory;
@@ -19,8 +21,9 @@ final public class TransactionHistoryOperations {
         try (Connection conn = Database.getConnection()) {
             List<TransactionHistory> temp = transactionHistoryData.fetchTransactions(conn, accountId, 0);
             if (temp.isEmpty()) throw new IllegalArgumentException("No recorded history.");
+            
+            Collections.reverse(temp);
             return temp;
-
         } catch (SQLException e) {
             throw new RuntimeException("Database error: Could not retrieve history", e);
         }

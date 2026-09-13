@@ -35,7 +35,6 @@ final public class Transfer {
             BigDecimal 
                 totalAmount = amount.add(fee),
                 newSenderBalance = senderAccount.getBalance().subtract(totalAmount);
-            senderAccount.setBalance(newSenderBalance);
 
             // Update sender balance in database
             accountData.updateAccountData(link, newSenderBalance, senderAccount.getCpNumber());
@@ -43,7 +42,7 @@ final public class Transfer {
             // Update receiver data
             BigDecimal newReceiverBalance = amount.add(receiverAccount.getBalance());
             accountData.updateAccountData(link, newReceiverBalance, receiverAccount.getCpNumber());
-            receiverAccount.setBalance(newReceiverBalance); // for local receiver account
+            
 
 
             // i-record sa transactions table
@@ -57,6 +56,9 @@ final public class Transfer {
             );
 
             link.commit();  // END
+
+            senderAccount.setBalance(newSenderBalance);
+            receiverAccount.setBalance(newReceiverBalance); // for local receiver account
 
         }catch (SQLException e) {
             link.rollback();

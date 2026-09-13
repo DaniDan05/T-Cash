@@ -1,12 +1,7 @@
 package source.model;
 
-import java.util.List;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
-
-
 
 public abstract class Account{
 
@@ -63,9 +58,10 @@ public abstract class Account{
         this.walletLimit = walletLimit;
     }
 
+    public void setBalance(BigDecimal balance){
+        this.balance = balance;
+    }
    
-
-
     public BigDecimal getSendFee(BigDecimal givenAmount) {
 
         return givenAmount.divide(
@@ -74,11 +70,6 @@ public abstract class Account{
             RoundingMode.CEILING).multiply(new BigDecimal("2")
         );
     }
-
-    public void setBalance(BigDecimal balance){
-        this.balance = balance;
-    }
-
 
     public BigDecimal getBillersFee() {
         return new BigDecimal("30");

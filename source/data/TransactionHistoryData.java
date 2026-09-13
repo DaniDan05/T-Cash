@@ -22,7 +22,7 @@ final public class TransactionHistoryData {
         Connection extension,
         long senderId,
         long receiverId,
-        BigDecimal balance,
+        BigDecimal amount,
         BigDecimal fee,
         Account.TransactionType transactionType
     ) throws SQLException {
@@ -33,7 +33,7 @@ final public class TransactionHistoryData {
         try (PreparedStatement statement = extension.prepareStatement(insertDataTransactions)) {
             statement.setLong(1, senderId);
             statement.setLong(2, receiverId);
-            statement.setString(3, balance.toPlainString());
+            statement.setString(3, amount.toPlainString());
             statement.setString(4, fee.toPlainString());
             statement.setString(5, transactionType.toString());
             statement.setString(6, TimeFormat.currentTimeStamp());
@@ -48,7 +48,11 @@ final public class TransactionHistoryData {
         }
     }
 
-    public List<TransactionHistory> fetchTransactions(Connection extension, long loggedAccountId, int maxRows) {
+    public List<TransactionHistory> fetchTransactions(
+        Connection extension,
+        long loggedAccountId,
+        int maxRows
+    ) throws SQLException {
         List<TransactionHistory> temp = new ArrayList<>();
 
         StringBuilder fetch = new StringBuilder(
@@ -115,8 +119,6 @@ final public class TransactionHistoryData {
 
             return temp;
 
-        } catch (SQLException e) {
-            throw new RuntimeException("Database error, can't fetch transaction history...");
-        }
+        } 
     }
 }

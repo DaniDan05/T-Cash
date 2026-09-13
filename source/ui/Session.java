@@ -1,7 +1,7 @@
 package source.ui;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
+
 import java.util.Scanner;
 import java.util.List;
 
@@ -10,18 +10,15 @@ import source.model.Account.AccountType;
 import source.model.Account.TransactionType;
 import source.model.Business;
 
-import source.service.Transfer;
 import source.service.AccountOperations;
 import source.service.TransactionHistoryOperations;
 import source.service.TransactionOperations;
 
-import source.util.Database;
 import source.util.Validator;
 
 final class Session {
     final private Scanner input;
     final private Account loggedAccount;
-    final private AccountOperations accountOperations;
     final private TransactionOperations transactionOperations;
     final private TransactionHistoryOperations transactionHistoryOperations;
 
@@ -34,21 +31,14 @@ final class Session {
     ) {
         this.input = input;
         this.loggedAccount = loggedAccount;
-        this.accountOperations = accountOperations;
         this.transactionOperations = transactionOperations;
         this.transactionHistoryOperations = transactionHistoryOperations;
     }
 
     void execute() {
-        System.out.println("Log in successfully.");
         MENU: while (true) {
-            System.out.println(
-                loggedAccount.getName() +
-                "\nAccount Type: " + loggedAccount.getAccountType() +
-                (loggedAccount instanceof Business ? "\nBusiness Name: " + ((Business)loggedAccount).getBusinessName() : "") + 
-                "\nBALANCE: ₱" + loggedAccount.getBalance() + 
-                "\n1: Send, 2: Cash In, 3: Pay Bills, 4: Transaction History"
-            );
+            
+            printSession();
 
             String choice = input.nextLine();
 
@@ -70,63 +60,59 @@ final class Session {
                            .forEach(x -> System.out.println(x));
                     
                     } catch (IllegalArgumentException e) { 
-                        System.out.println(e.getMessage());
+                        System.out.println("⚠️  " + e.getMessage());
                     } catch (RuntimeException e) {
-                        System.out.println("Retrieving error, " + e.getMessage());
+                        System.out.println("❌ Retrieving error, " + e.getMessage());
                     }
                     break;
                     
                 default:
-                    System.out.println("Exit...");
                     break MENU;
             }
         }
     }
-
-    private void viewSendMenu() {
-        System.out.println("Enter a Cellphone Number.");
-        String receiverCp = input.nextLine();
-
-        if (Validator.isInvalidCpNumber(receiverCp)) {
-            System.out.println("Length must be 11");
-            return;
-        }
-
-        System.out.println("Input Amount");
-        BigDecimal amount = input.nextBigDecimal();
-        input.nextLine();
-
-        if(Validator.isInvalidAmount(amount)) {
-            System.out.println("Invalid amount.");
-            return;
-        }
-
-        // Business Logic (Connection guaranteed):
+// Business Logic (Connection guaranteed):
         // Self send 
         // If the target account exist
         // Wallet limit
         // kapag malaki yung amount kesa sa current amount ni sender
+    private void viewSendMenu() {
+        printSend();
+        System.out.print("📱 Enter a Cellphone Number: ");
+        String receiverCp = input.nextLine();
 
-        BigDecimal fee = loggedAccount.getSendFee(amount); 
+        if (Validator.isInvalidCpNumber(receiverCp)) {
+            System.out.println("⚠️  Length must be 11\n");
+            return;
+        }
+
+        System.out.print("💵 Input Amount: ");
+        BigDecimal amount = input.nextBigDecimal();
+        input.nextLine();
+
+        if (Validator.isInvalidAmount(amount)) {
+            System.out.println("⚠️  Invalid amount.\n");
+            return;
+        }
+
+        BigDecimal fee = loggedAccount.getSendFee(amount);
+
         try {
-            // Read Only
-            Account receiver = transactionOperations.checkSendDataAndGetReceiverAccount(loggedAccount, receiverCp, amount, fee);
-            // BigDecimal totalAmount = amount.add(fee);
+            Account receiver = transactionOperations.checkSendDataAndGetReceiverAccount(
+                loggedAccount, receiverCp, amount, fee);
 
-            String censordNumber = 
-                "******" + receiver.getCpNumber()
-                                .substring(
-                                    receiver.getCpNumber().length() - 5
-                                );
-            System.out.println("Recipient: " + receiver.getName() +
-                "\nNumber: " + censordNumber +
-                "\nType: " + receiver.getAccountType() +
-                "\nFee: " + fee +
-                "\nAmount: " + amount +
+            String censordNumber = "******" + receiver.getCpNumber()
+                .substring(receiver.getCpNumber().length() - 5);
+
+            System.out.println("👤 Recipient: " + receiver.getName() +
+                "\n📱 Number: " + censordNumber +
+                "\n📋 Type: " + receiver.getAccountType() +
+                "\n💸 Fee: " + fee +
+                "\n💵 Amount: " + amount +
                 "\nDo you want to send it now? [Y/N]");
 
             if (input.nextLine().trim().equalsIgnoreCase("N")) {
-                System.out.println("Cancelled Transaction...");
+                System.out.println("👋 Cancelled Transaction...\n");
                 return;
             }
 
@@ -137,59 +123,64 @@ final class Session {
                 fee,
                 TransactionType.SEND
             );
-            System.out.println("Transfer successfully.\n" + transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
-        } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+
+            printSuccess();
+            System.out.println(transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("⚠️  " + e.getMessage());
         } catch (RuntimeException e) {
-            System.out.println("Send error, " + e.getMessage());
+            System.out.println("❌ Send error, " + e.getMessage());
         }
     }
 
 
     private void viewCashInMenu() {
+    printCashInHeader();
+
         List<Account> agents;
         try{
             agents = transactionOperations.retrieveAccounts(AccountType.AGENT);
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Cash in error, " + e.getMessage());
+            System.out.println("❌ Cash in error, " + e.getMessage());
             return;
         }
         
-        agents.forEach(agent -> System.out.println(agent.getName())); // service
+        agents.forEach(agent -> System.out.println("🏪 " + agent.getName()));
 
-        System.out.println("Enter a agent name.");
+        System.out.print("👤 Enter a agent name: ");
         Account targetAgent;
         try{
-            targetAgent = transactionOperations.findAccount(agents, input.nextLine()); // service
+            targetAgent = transactionOperations.findAccount(agents, input.nextLine());
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         }
         
-        System.out.println("Input Amount");
+        System.out.print("💵 Input Amount: ");
         BigDecimal inputAmount = input.nextBigDecimal();
         input.nextLine();
         if (Validator.isInvalidAmount(inputAmount)){
-            System.out.println("Invalid amount.");
+            System.out.println("⚠️  Invalid amount.\n");
             return;
         }
 
         try {
             transactionOperations.validateWalletLimit(loggedAccount.getBalance(), inputAmount, loggedAccount.getWalletLimit());
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Cash in error, " + e.getMessage());
+            System.out.println("❌ Cash in error, " + e.getMessage());
             return;
         }
 
-        System.out.println("Cash in " + inputAmount + " from " + targetAgent.getName() + "? [Y/N]");
+        System.out.println("💵 Cash in " + inputAmount + " from " + targetAgent.getName() + "? [Y/N]");
         if (input.nextLine().trim().equalsIgnoreCase("N")) {
-            System.out.println("Cancelled Transaction...");
+            System.out.println("👋 Cancelled Transaction...\n");
             return;
         }
 
@@ -201,58 +192,64 @@ final class Session {
                 BigDecimal.ZERO,
                 TransactionType.CASH_IN
             );
-            System.out.println("Transfer successfully.\n\n" + transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+
+            printSuccess();
+            System.out.println(transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Cash in error, " + e.getMessage());
+            System.out.println("❌ Cash in error, " + e.getMessage());
             return;
         }
     }
 
+
     private void viewPayBillsMenu() {
+        printPayBills();
+
         List<Account> billers;
         try{
             billers = transactionOperations.retrieveAccounts(AccountType.BILLER);
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Pay bills error, " + e.getMessage());
+            System.out.println("❌ Pay bills error, " + e.getMessage());
             return;
         }
         
-        billers.forEach(biller -> System.out.println(biller.getName()));
+        billers.forEach(biller -> System.out.println("🏢 " + biller.getName()));
 
-        System.out.println("Enter a biller name.");
+        System.out.print("👤 Enter a biller name: ");
         Account targetBiller;
         try{
             targetBiller = transactionOperations.findAccount(billers, input.nextLine());
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Pay bills error, " + e.getMessage());
+            System.out.println("❌ Pay bills error, " + e.getMessage());
             return;
         }
 
-        System.out.println("Input Amount");
+        System.out.print("💵 Input Amount: ");
         BigDecimal inputAmount = input.nextBigDecimal();
         input.nextLine();
         if (Validator.isInvalidAmount(inputAmount)){
-            System.out.println("Invalid amount.");
+            System.out.println("⚠️  Invalid amount.");
             return;
         }
 
         BigDecimal billersFee = loggedAccount.getBillersFee();
-        System.out.println("Biller: " + targetBiller.getName() +
-            "\nAmount: " + inputAmount +
-            "\nFee: " + billersFee +
-            "\nTotal: " + inputAmount.add(billersFee) +
+        System.out.println("🏢 Biller: " + targetBiller.getName() +
+            "\n💵 Amount: " + inputAmount +
+            "\n💸 Fee: " + billersFee +
+            "\n💰 Total: " + inputAmount.add(billersFee) +
             "\nPay this bill? [Y/N]");
         if (input.nextLine().trim().equalsIgnoreCase("N")) {
-            System.out.println("Cancelled Transaction...");
+            System.out.println("👋 Cancelled Transaction...\n");
             return;
         }
 
@@ -261,21 +258,103 @@ final class Session {
                 loggedAccount.getBalance(), inputAmount.add(billersFee));
 
             transactionOperations.getTransfer(
-                loggedAccount,        // sender = logged account
-                targetBiller,         // receiver = biller
+                loggedAccount,
+                targetBiller,
                 inputAmount,
-                billersFee,           // may fee
+                billersFee,
                 TransactionType.PAY_BILLS);
 
-            System.out.println("Transfer successfully.\n\n" + 
-                transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
+            printSuccess();
+            System.out.println(transactionHistoryOperations.retrieveReceipt(loggedAccount.getAccountID()));
 
         } catch (IllegalArgumentException e) { 
-            System.out.println(e.getMessage());
+            System.out.println("⚠️  " + e.getMessage());
             return;
         } catch (RuntimeException e) {
-            System.out.println("Pay bills error, " + e.getMessage());
+            System.out.println("❌ Pay bills error, " + e.getMessage());
             return;
         }
     }
+    private void printSession() {
+        System.out.println("""
+        ╔═════════════════════════════════════════╗
+        ║       💰  WELCOME TO T-CASH  💰         ║
+        ╠═════════════════════════════════════════╣
+        ║             ⟪ MAIN MENU ⟫               ║
+        ╠═════════════════════════════════════════╣
+        ║                                         ║
+        ║   [1]  💸  SEND                         ║
+        ║   [2]  💵  CASH IN                      ║
+        ║   [3]  🧾  PAY BILLS                    ║
+        ║   [4]  📜  TRANSACTION HISTORY          ║
+        ║   [5]  🚪  LOG OUT                      ║
+        ║                                         ║
+        ╚═════════════════════════════════════════╝
+        """);
+
+        System.out.println("👤 " + loggedAccount.getName());
+        System.out.println("📋 " + loggedAccount.getAccountType());
+
+        if (loggedAccount instanceof Business) {
+            System.out.println("🏢 " + ((Business) loggedAccount).getBusinessName());
+        }
+
+        System.out.println("💵 Balance: ₱" + loggedAccount.getBalance().toPlainString());
+        System.out.println("");
+    }
+
+    private void printSend() {
+        System.out.println("""
+        ╔══════════════════════════════════╗
+        ║    💰  WELCOME TO T-CASH  💰     ║
+        ╠══════════════════════════════════╣
+        ║           ⟪ 💸 SEND ⟫            ║
+        ╠══════════════════════════════════╣
+        ║                                  ║
+        ║  Send money to another account.  ║
+        ║                                  ║
+        ╚══════════════════════════════════╝
+
+        """);
+    }
+
+    private void printCashInHeader() {
+        System.out.println("""
+        ╔═════════════════════════════════╗
+        ║    💰  WELCOME TO T-CASH  💰    ║
+        ╠═════════════════════════════════╣
+        ║         ⟪ 💵 CASH IN ⟫          ║
+        ╠═════════════════════════════════╣
+        ║                                 ║
+        ║  Cash in from an active agent.  ║
+        ║                                 ║
+        ╚═════════════════════════════════╝
+
+        """);
+    }
+
+    private void printPayBills() {
+        System.out.println("""
+        ╔═════════════════════════════════╗
+        ║    💰  WELCOME TO T-CASH  💰    ║
+        ╠═════════════════════════════════╣
+        ║         ⟪ 🧾 PAY BILLS ⟫        ║
+        ╠═════════════════════════════════╣
+        ║                                 ║
+        ║   Pay your bills to a biller.   ║
+        ║                                 ║
+        ╚═════════════════════════════════╝
+
+        """);
+    }
+
+    private void printSuccess() {
+        System.out.println("""
+        
+        ╔══════════════════════════════════════╗
+        ║      ✅  TRANSFER SUCCESSFUL         ║
+        ╚══════════════════════════════════════╝
+        """);
+    }
+
 }

@@ -52,6 +52,7 @@ final public class AccountOperations {
             if (!isGeneratingSuccess)
                 throw new  IllegalArgumentException("Generating account failed.");
         } catch (SQLException e) {
+            // e.printStackTrace(); Debugging purposes
             throw new RuntimeException("Database error: creating data in database failed...", e);
         }
     }

@@ -69,19 +69,21 @@ public class TransactionHistory {
 
     
     @Override
-    public String toString(){
+    public String toString() {
         boolean isSend = "SENT".equals(getRole());
         String sign = isSend ? "-" : "+";
-        String fee = isSend ? "\nFee: -₱" + getFee() : "";
-        return getRole() +
-            "\nName: " + getCounterpartyName() + 
-            "\nNumber: " + getCounterpartyCpNumber() + 
-            "\nAmount: " + sign + "₱"+ getAmount() + 
-            fee + 
-            "\nType: " + getTransactionType() + 
-            "\nTime Generated: " + getCreatedAt() + 
-            "\nReference Number: " + getReferenceNumber() + 
-            "\n\n===================\n";
+        String feeLine = isSend ? "\n💸 Fee: ₱" + getFee() : "";
+        String roleLabel = isSend ? "📤 SENT" : "📥 RECEIVED";
+
+        return "\n⟪ " + roleLabel + " ⟫" +
+            "\n👤 Name: " + getCounterpartyName() +
+            "\n📱 Number: " + getCounterpartyCpNumber() +
+            "\n💵 Amount: " + sign + "₱" + getAmount() +
+            feeLine +
+            "\n📋 Type: " + getTransactionType() +
+            "\n🕐 Time: " + getCreatedAt() +
+            "\n🔖 Ref: " + getReferenceNumber() +
+            "\n───────────────────────\n";
     }
 
 

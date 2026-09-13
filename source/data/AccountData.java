@@ -31,7 +31,7 @@ final public class AccountData {
     ) throws SQLException {
         String qInsertDataAccounts = 
             "INSERT INTO accounts(account_name, cp_number, mpin_hashed, account_type, business_name, created_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?);";
+            "VALUES (?, ?, ?, ?, ?, ?);";
 
         try (PreparedStatement statement = extension.prepareStatement(qInsertDataAccounts)) {
 

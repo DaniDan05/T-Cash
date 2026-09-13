@@ -11,8 +11,8 @@ final public class Biller extends Account{
             cpNumber,
             balance,
             AccountType.BILLER,
-            "2026-08-10 00:00:00",
-            new BigDecimal(10)
+            "2026-08-10 00:00:00", // TODO: Reserve ka muna
+            new BigDecimal(999999999999999999L)
         );
     }
 }
