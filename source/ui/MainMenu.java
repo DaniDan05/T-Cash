@@ -26,7 +26,15 @@ final public class MainMenu {
     }
 
     public void execute() {
+        LogIn logIn =  new LogIn(
+                        input,
+                        accountOperations,
+                        transactionOperations,
+                        transactionHistoryOperations
+                    );
 
+        Register register = new Register(input,accountOperations);
+        
         MAIN_MENU: while(true){
             
             printMainMenu();
@@ -35,16 +43,11 @@ final public class MainMenu {
 
             switch (choice) {
                 case "1":
-                    new LogIn(
-                        input,
-                        accountOperations,
-                        transactionOperations,
-                        transactionHistoryOperations
-                    ).execute();
+                    logIn.execute();
                     break;
 
                 case "2":
-                    new Register(input,accountOperations).execute();
+                    register.execute();
                     break;
             
                 default:

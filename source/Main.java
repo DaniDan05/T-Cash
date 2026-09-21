@@ -15,28 +15,18 @@ public class Main {
     
     public static void main(String[] args) {
         AccountData accountData = new AccountData();
-        TransactionHistoryData transactionHistoryData = 
-            new TransactionHistoryData();
-        
-        AccountOperations accountOperations = 
-            new AccountOperations(accountData);
-
-        TransactionHistoryOperations transactionHistoryOperations = 
-            new TransactionHistoryOperations(transactionHistoryData);
-
+        TransactionHistoryData transactionHistoryData = new TransactionHistoryData();
         Transfer transfer = new Transfer(accountData, transactionHistoryData);
-
-        TransactionOperations transactionOperations = new TransactionOperations(
-            accountData,
-            transfer
-        );
 
         Scanner input = new Scanner(System.in);
         new MainMenu(
             input,
-            accountOperations,
-            transactionOperations,
-            transactionHistoryOperations
+            new AccountOperations(accountData),
+            new TransactionOperations(
+                accountData,
+                transfer
+            ),
+            new TransactionHistoryOperations(transactionHistoryData)
         ).execute();
         input.close();
     }

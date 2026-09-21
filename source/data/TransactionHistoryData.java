@@ -26,7 +26,6 @@ final public class TransactionHistoryData {
         BigDecimal fee,
         Account.TransactionType transactionType
     ) throws SQLException {
-        // System.out.println(BLUE + "recordTransaction()" + END);
 
         String insertDataTransactions = 
             "INSERT INTO transactions(sender_id, receiver_id, amount, fee, transaction_type, created_at, reference_number) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -42,6 +41,7 @@ final public class TransactionHistoryData {
                 .toString()
                 .substring(0, 12)
                 .toUpperCase();
+
             statement.setString(7, generatedReference);
 
             statement.executeUpdate();
@@ -53,6 +53,7 @@ final public class TransactionHistoryData {
         long loggedAccountId,
         int maxRows
     ) throws SQLException {
+
         List<TransactionHistory> temp = new ArrayList<>();
 
         StringBuilder fetch = new StringBuilder(
@@ -76,9 +77,8 @@ final public class TransactionHistoryData {
             "ORDER BY transactions.id DESC"
         );
 
-        if (maxRows > 0) {
+        if (maxRows > 0) 
             fetch.append(" LIMIT ").append(maxRows);
-        }
 
         try (PreparedStatement statement = extension.prepareStatement(fetch.toString())) {
 

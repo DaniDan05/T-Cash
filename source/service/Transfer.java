@@ -30,7 +30,6 @@ final public class Transfer {
             // START
             link.setAutoCommit(false);
 
-
             // Update sender balance in local
             BigDecimal 
                 totalAmount = amount.add(fee),

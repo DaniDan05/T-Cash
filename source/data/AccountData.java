@@ -76,7 +76,6 @@ final public class AccountData {
 
     // Transfer
     public void updateAccountData(Connection extension, BigDecimal balance, String cpNumber) throws SQLException {
-        // System.out.println(BLUE + "updateData() call." + END);
         String qEdit = "UPDATE accounts SET balance = ? WHERE cp_number = ?;";
 
         try (PreparedStatement statement = extension.prepareStatement(qEdit)) {
@@ -91,7 +90,6 @@ final public class AccountData {
 
     // TransactionOperation, Transfer
     public Account readAccountData(Connection extension, String cpNumber) throws SQLException {
-        // System.out.println(BLUE + "readAccountData() call." + END);
         final String qShowData = "SELECT * FROM accounts WHERE cp_number=?;";
         
         try (PreparedStatement statement = extension.prepareStatement(qShowData)) {
