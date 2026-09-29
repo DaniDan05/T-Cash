@@ -1,6 +1,4 @@
 #!/bin/bash
-# TEST
-# TODO: FINISH THIS FIRST RECONSTRUCT THE CODE
 
 clean() {
     find . -name "*.class" -type f -delete

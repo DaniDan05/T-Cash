@@ -30,7 +30,7 @@ final public class AccountData {
             String businessName
     ) throws SQLException {
         String qInsertDataAccounts = 
-            "INSERT INTO accounts(account_name, cp_number, mpin_hashed, account_type, business_name, created_at) " +
+            "INSERT INTO account(account_name, cp_number, mpin_hashed, account_type, business_name, created_at) " +
             "VALUES (?, ?, ?, ?, ?, ?);";
 
         try (PreparedStatement statement = extension.prepareStatement(qInsertDataAccounts)) {
@@ -49,7 +49,7 @@ final public class AccountData {
     public String findAccountName (Connection extension, String accountName) throws SQLException {
         String qFindAccountName = 
             "SELECT account_name " +
-            "FROM accounts WHERE account_name=?";
+            "FROM account WHERE account_name=?";
         try (PreparedStatement statement = extension.prepareStatement(qFindAccountName)
         ) {
             statement.setString(1, accountName);
@@ -63,7 +63,7 @@ final public class AccountData {
     public String findMpin (Connection extension, String cpNumber) throws SQLException {
         String qFindMPin = 
             "SELECT mpin_hashed " +
-            "FROM accounts WHERE cp_number=?";
+            "FROM account WHERE cp_number=?";
         try (PreparedStatement statement = extension.prepareStatement(qFindMPin)
         ) {
             statement.setString(1, cpNumber);
@@ -76,10 +76,10 @@ final public class AccountData {
 
     // Transfer
     public void updateAccountData(Connection extension, BigDecimal balance, String cpNumber) throws SQLException {
-        String qEdit = "UPDATE accounts SET balance = ? WHERE cp_number = ?;";
+        String qEdit = "UPDATE account SET balance = ? WHERE cp_number = ?;";
 
         try (PreparedStatement statement = extension.prepareStatement(qEdit)) {
-            statement.setString(1, balance.toPlainString());
+            statement.setBigDecimal(1, balance);
             statement.setString(2, cpNumber);
 
             // Exactly one account should be updated by this statement.
@@ -90,7 +90,7 @@ final public class AccountData {
 
     // TransactionOperation, Transfer
     public Account readAccountData(Connection extension, String cpNumber) throws SQLException {
-        final String qShowData = "SELECT * FROM accounts WHERE cp_number=?;";
+        final String qShowData = "SELECT * FROM account WHERE cp_number=?;";
         
         try (PreparedStatement statement = extension.prepareStatement(qShowData)) {
             statement.setString(1, cpNumber);
@@ -136,7 +136,7 @@ final public class AccountData {
     // Transaction Operations
     public List<Account> getAccountsByType(Connection extension, AccountType type) throws SQLException {
         List<Account> temp = new ArrayList<>();
-        String qGetAccountsByType = "SELECT cp_number FROM accounts WHERE account_type = ? ";
+        String qGetAccountsByType = "SELECT cp_number FROM account WHERE account_type = ? ";
         try (PreparedStatement statement = extension.prepareStatement(qGetAccountsByType)) {
             statement.setString(1, type.name());   
             ResultSet result = statement.executeQuery();

@@ -28,12 +28,12 @@ final public class TransactionHistoryData {
     ) throws SQLException {
 
         String insertDataTransactions = 
-            "INSERT INTO transactions(sender_id, receiver_id, amount, fee, transaction_type, created_at, reference_number) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            "INSERT INTO `transaction`(sender_id, receiver_id, amount, fee, transaction_type, created_at, reference_number) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = extension.prepareStatement(insertDataTransactions)) {
             statement.setLong(1, senderId);
             statement.setLong(2, receiverId);
-            statement.setString(3, amount.toPlainString());
-            statement.setString(4, fee.toPlainString());
+            statement.setBigDecimal(3, amount);
+            statement.setBigDecimal(4, fee);
             statement.setString(5, transactionType.toString());
             statement.setString(6, TimeFormat.currentTimeStamp());
 
@@ -58,23 +58,23 @@ final public class TransactionHistoryData {
 
         StringBuilder fetch = new StringBuilder(
             "SELECT " +
-                "transactions.id, " +
-                "transactions.sender_id, " +
-                "transactions.receiver_id, " +
-                "transactions.amount, " +
-                "transactions.fee, " +
-                "transactions.transaction_type, " +
-                "transactions.created_at, " +
-                "transactions.reference_number, " +
+                "`transaction`.id, " +
+                "`transaction`.sender_id, " +
+                "`transaction`.receiver_id, " +
+                "`transaction`.amount, " +
+                "`transaction`.fee, " +
+                "`transaction`.transaction_type, " +
+                "`transaction`.created_at, " +
+                "`transaction`.reference_number, " +
                 "sender_account.account_name AS sender_name, " +
                 "sender_account.cp_number AS sender_cp, " +
                 "receiver_account.account_name AS receiver_name, " +
                 "receiver_account.cp_number AS receiver_cp " +
-            "FROM transactions " +
-            "JOIN accounts AS sender_account ON transactions.sender_id = sender_account.id " +
-            "JOIN accounts AS receiver_account ON transactions.receiver_id = receiver_account.id " +
-            "WHERE transactions.sender_id = ? OR transactions.receiver_id = ? " +
-            "ORDER BY transactions.id DESC"
+            "FROM `transaction` " +
+            "JOIN account AS sender_account ON `transaction`.sender_id = sender_account.id " +
+            "JOIN account AS receiver_account ON `transaction`.receiver_id = receiver_account.id " +
+            "WHERE `transaction`.sender_id = ? OR `transaction`.receiver_id = ? " +
+            "ORDER BY `transaction`.id DESC"
         );
 
         if (maxRows > 0) 
